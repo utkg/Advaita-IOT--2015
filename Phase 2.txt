@@ -1,0 +1,60 @@
+#include <SPI.h>
+#include <Ethernet.h>
+boolean incoming = 0; //to check wheather the data is coming from the client is valid according to the code
+byte mac[] = { 0x00, 0xAA, 0xBB, 0xCC, 0xDA, 0x02 };// mac address of the arduino
+IPAddress ip(192,168,1,34); //ip address of the arduino
+// Initialize the Ethernet server library
+// (port 80 is default for HTTP we can change this port but at the every connect we will have to specify that port so we are using 80):
+EthernetServer server(80);
+void setup()
+{
+pinMode(2, OUTPUT); //configuring the pin mode on the arduino board where we can connect the led to be toggled
+// start the Ethernet connection and the server:
+Ethernet.begin(mac, ip);
+server.begin();
+Serial.begin(9600);
+}
+void loop()
+{
+// listen for incoming clients
+EthernetClient client = server.available();
+if (client) {
+boolean currentLineIsBlank = true; //used to differentiate wheather line is blank or usdesired character is there on the url
+//loop until the connection is made
+while (client.connected()) {
+if (client.available()) {
+char c = client.read(); //reads URL string from $ to first blank space
+if(incoming && c == ' '){ //used to validate the data
+incoming = 0;
+}
+if(c == '$'){
+incoming = 1;
+}
+//Checks for the URL string $1 or $2
+if(incoming == 1){
+Serial.println(c); //print the value on serial monitor
+if(c == '1'){
+Serial.println("ON");
+digitalWrite(2, HIGH); //used to toggle(switch on) the led
+}
+if(c == '2'){
+Serial.println("OFF");
+digitalWrite(2, LOW); //used to toggle(switch off) the led
+}
+}
+if (c == '\n') {
+// you're starting a new line
+currentLineIsBlank = true;
+}
+else if (c != '\r') {
+// you've gotten a character on the current line
+currentLineIsBlank = false;
+}
+}
+}
+// give the web browser time to receive the data
+delay(1);
+// close the connection:
+client.stop();
+}
+}
